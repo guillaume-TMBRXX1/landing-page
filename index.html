@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TIMBRE Sessions — L'instant brut du live</title>
+<meta name="description" content="Repartez avec l'enregistrement live du concert que vous venez de vivre. Précommande sur Bandcamp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Unbounded:wght@600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ——— palette stricte : 3 couleurs de marque ——— */
+    --ink:#1a1a1b;         /* noir profond */
+    --white:#ffffff;       /* blanc */
+    --green:#2c4c36;       /* vert forêt réel, échantillonné dans le logo/pochettes/bannière */
+
+    /* teintes dérivées (nuances des 3 couleurs ci-dessus, pour la profondeur et les états interactifs) */
+    --ink-soft:#232324;
+    --green-bright:#3f6b4d;   /* vert éclairci — hover, glow */
+    --green-deep:#182b1d;     /* vert assombri — fonds de carte */
+    --white-90: rgba(255,255,255,0.90);
+    --white-65: rgba(255,255,255,0.65);
+    --white-40: rgba(255,255,255,0.40);
+    --line: rgba(255,255,255,0.14);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--white);
+    font-family:'Inter', sans-serif;
+    font-weight:400;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 120% 80% at 50% -10%, rgba(6,64,43,0.30), transparent 60%),
+      radial-gradient(ellipse 100% 60% at 50% 110%, rgba(6,64,43,0.16), transparent 60%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .top-waves{
+    position:absolute;
+    top:0; left:0;
+    width:100%;
+    height:clamp(180px, 26vw, 320px);
+    z-index:0;
+    pointer-events:none;
+    opacity:0.22;
+  }
+  .top-waves svg{width:100%; height:100%; display:block;}
+
+  .wrap{max-width:1000px; margin:0 auto; padding:0 28px; position:relative; z-index:1;}
+
+  h1,h2,h3{font-family:'Fraunces', serif; font-weight:500; margin:0; letter-spacing:-0.01em;}
+  a{color:inherit;}
+
+  /* ---------- NAV ---------- */
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 0 8px;
+    flex-wrap:wrap;
+    gap:16px;
+  }
+  .logo{
+    font-family:'Fraunces', serif;
+    font-size:17px;
+    letter-spacing:0.06em;
+    font-weight:500;
+  }
+  .logo .logo-mark{
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+  }
+  .logo .logo-session{
+    margin-left:5px;
+  }
+
+  /* ---------- BADGE LOGO (rond, animé) ---------- */
+  .logo-badge{
+    position:relative;
+    width:clamp(100px, 11vw, 160px);
+    height:clamp(100px, 11vw, 160px);
+    flex-shrink:0;
+  }
+  .badge-ring{
+    position:absolute;
+    inset:-7px;
+    width:calc(100% + 14px);
+    height:calc(100% + 14px);
+    pointer-events:none;
+  }
+  .badge-core{width:100%; height:100%; border-radius:50%; transform-origin:50% 50%; overflow:hidden; box-shadow:0 20px 50px -20px rgba(0,0,0,0.6);}
+  .badge-core img{width:100%; height:100%; display:block; border-radius:50%; object-fit:cover;}
+
+  @media (prefers-reduced-motion: no-preference){
+    .badge-ring{
+      animation: ringFadeIn .9s ease forwards, ringSpin 46s linear infinite;
+      opacity:0;
+    }
+    .badge-core{
+      animation: coreReveal 1.1s cubic-bezier(.22,1.4,.36,1) both;
+    }
+  }
+  @keyframes ringFadeIn{ from{opacity:0;} to{opacity:1;} }
+  @keyframes ringSpin{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+  @keyframes coreReveal{
+    0%{ opacity:0; transform:scale(.5); filter:blur(7px); }
+    55%{ opacity:1; filter:blur(0); }
+    100%{ opacity:1; transform:scale(1); filter:blur(0); }
+  }
+  .nav-link{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    text-decoration:none;
+    color:var(--white-65);
+    border:1px solid var(--line);
+    padding:9px 16px;
+    border-radius:2px;
+    transition:all .25s ease;
+    white-space:nowrap;
+  }
+  .nav-link:hover{border-color:var(--green-bright); color:var(--white); background:rgba(6,64,43,0.25);}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:64px 0 40px; text-align:left;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--white-90);
+    margin-bottom:22px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:16px; height:8px;
+    background:var(--green);
+    display:inline-block;
+    border-radius:1px;
+  }
+  .hero h1{
+    font-size:clamp(34px, 5.4vw, 58px);
+    line-height:1.08;
+    max-width:15ch;
+    color:var(--white);
+  }
+  .hero h1 em{
+    font-style:italic;
+    color:var(--white);
+    position:relative;
+  }
+  .hero h1 em::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:2px;
+    height:0.32em;
+    background:var(--green);
+    z-index:-1;
+    opacity:0.55;
+  }
+  .hero p{
+    max-width:46ch;
+    color:var(--white-65);
+    font-size:16px;
+    margin-top:22px;
+  }
+
+  /* ---------- TICKET STUB ---------- */
+  .ticket{
+    margin:56px 0 48px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    position:relative;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    background:linear-gradient(180deg, rgba(6,64,43,0.08), transparent);
+  }
+  .ticket::before, .ticket::after{
+    content:"";
+    position:absolute;
+    width:18px; height:18px;
+    border-radius:50%;
+    background:var(--ink);
+    border:1px solid var(--line);
+    top:50%; transform:translateY(-50%);
+  }
+  .ticket::before{left:-9px;}
+  .ticket::after{right:-9px;}
+  .ticket-cell{
+    padding:26px 24px;
+    border-right:1px dashed var(--line);
+  }
+  .ticket-cell:last-child{border-right:none;}
+  .ticket-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--white-40);
+    margin-bottom:10px;
+  }
+  .ticket-value{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:19px;
+    color:var(--white);
+  }
+  .ticket-value small{
+    display:block;
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    color:var(--white-65);
+    margin-top:2px;
+    font-weight:400;
+  }
+
+  @media(max-width:640px){
+    .ticket{grid-template-columns:1fr;}
+    .ticket-cell{border-right:none; border-bottom:1px dashed var(--line);}
+    .ticket-cell:last-child{border-bottom:none;}
+  }
+
+  /* ---------- COUNTDOWN (signature element — élevé, sans bois) ---------- */
+  .counter-section{
+    margin:64px 0;
+    text-align:center;
+  }
+  .counter-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--white-65);
+    margin-bottom:20px;
+  }
+  .counter-panel{
+    background:linear-gradient(180deg, var(--green) 0%, var(--green-deep) 100%);
+    border-radius:10px;
+    padding:6px;
+    box-shadow:
+      0 30px 60px -24px rgba(6,64,43,0.55),
+      0 2px 0 rgba(255,255,255,0.06) inset,
+      0 -30px 60px -40px rgba(0,0,0,0.6) inset;
+    transform:translateY(0);
+  }
+  .counter-inset{
+    background:linear-gradient(180deg, #0f0f10, #030303);
+    border-radius:7px;
+    padding:32px 16px;
+    display:flex;
+    justify-content:center;
+    gap:clamp(10px, 3vw, 28px);
+    box-shadow:inset 0 2px 14px rgba(0,0,0,0.85);
+  }
+  .counter-unit{display:flex; flex-direction:column; align-items:center;}
+  .counter-digits{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:clamp(28px, 6vw, 44px);
+    font-weight:600;
+    color:var(--white);
+    text-shadow:0 0 20px rgba(13,92,61,0.85), 0 0 44px rgba(13,92,61,0.35);
+    letter-spacing:0.02em;
+    font-variant-numeric:tabular-nums;
+  }
+  .counter-caption{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--white-40);
+    margin-top:6px;
+  }
+  .counter-sep{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:clamp(24px, 5vw, 36px);
+    color:var(--green-bright);
+    align-self:center;
+    transform:translateY(-8px);
+  }
+  .counter-status{
+    margin-top:18px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--white-65);
+  }
+  .counter-status .live-dot{
+    display:inline-block; width:7px; height:7px; border-radius:50%;
+    background:var(--green-bright);
+    margin-right:8px;
+    box-shadow:0 0 8px var(--green-bright);
+    animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.35;}}
+
+  /* ---------- CTA ---------- */
+  .cta-block{text-align:center; margin:48px 0 72px;}
+  .btn-bandcamp{
+    position:relative;
+    overflow:hidden;
+    display:inline-flex;
+    align-items:center;
+    gap:12px;
+    background:var(--green);
+    color:var(--white);
+    text-decoration:none;
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:15px;
+    padding:17px 32px;
+    border-radius:3px;
+    transition:background .25s ease, transform .25s ease;
+    letter-spacing:0.01em;
+  }
+  .btn-bandcamp::after{
+    content:"";
+    position:absolute; inset:0;
+    background:linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.35) 50%, transparent 60%);
+    transform:translateX(-120%);
+    transition:transform .7s ease;
+    pointer-events:none;
+  }
+  .btn-bandcamp:hover::after{transform:translateX(120%);}
+  .btn-bandcamp:hover{background:var(--green-bright); transform:translateY(-1px);}
+  .btn-bandcamp svg{width:16px; height:16px;}
+  .cta-sub{
+    margin-top:16px;
+    font-size:13px;
+    color:var(--white-40);
+  }
+
+  /* ---------- ABOUT ---------- */
+  .about{padding:64px 0; border-top:1px solid var(--line);}
+  .about-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:36px; margin-top:36px;}
+  @media(max-width:720px){.about-grid{grid-template-columns:1fr;}}
+  .about h2{font-size:clamp(24px, 3.4vw, 30px); max-width:22ch; color:var(--white);}
+  .about-item{border-left:1px solid var(--line); padding-left:20px;}
+  .about-item .num{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--white);
+    background:var(--green); display:inline-block; padding:2px 7px; border-radius:2px;
+    margin-bottom:10px;
+  }
+  .about-item h3{font-size:17px; color:var(--white); margin-bottom:8px; font-weight:500;}
+  .about-item p{font-size:14px; color:var(--white-65); margin:0;}
+
+  /* ---------- REVENUE NOTE ---------- */
+  .revenue-note{
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:26px 28px;
+    margin-top:56px;
+    display:flex; gap:18px; align-items:flex-start;
+    background:rgba(6,64,43,0.10);
+  }
+  .revenue-note .icon{
+    flex-shrink:0; width:34px; height:34px; border-radius:50%;
+    background:var(--green);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces', serif; color:var(--white); font-size:15px;
+  }
+  .revenue-note p{margin:0; font-size:13.5px; color:var(--white-65);}
+  .revenue-note strong{color:var(--white); font-weight:500;}
+
+  /* ---------- VITRINE (galerie des pochettes) ---------- */
+  .gallery{padding:64px 0; border-top:1px solid var(--line);}
+  .gallery-head{display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap;}
+  .gallery-head h2{font-size:clamp(24px, 3.4vw, 30px); max-width:26ch; color:var(--white);}
+  .gallery-head p{font-size:13.5px; color:var(--white-65); max-width:34ch; margin:10px 0 0;}
+  .gallery-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));
+    gap:22px;
+    margin-top:38px;
+  }
+  .cover-card{
+    display:block;
+    text-decoration:none;
+    border-radius:6px;
+    overflow:hidden;
+    background:var(--ink-soft);
+    border:1px solid var(--line);
+    transition:transform .08s ease-out, border-color .3s ease, box-shadow .3s ease;
+    transform-style:preserve-3d;
+    will-change:transform;
+  }
+  .cover-card:hover{
+    border-color:var(--green-bright);
+    box-shadow:0 24px 44px -22px rgba(6,64,43,0.65);
+  }
+  .cover-card:focus-visible{outline:2px solid var(--green-bright); outline-offset:2px;}
+  .cover-art{display:block; width:100%; aspect-ratio:1/1; background:var(--green-deep); object-fit:cover;}
+  .cover-meta{padding:14px 16px 16px;}
+  .cover-title{
+    display:block;
+    font-family:'Fraunces', serif;
+    font-size:15px;
+    color:var(--white);
+    margin-bottom:3px;
+  }
+  .cover-sub{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.03em;
+    color:var(--white-40);
+  }
+  .cover-status{
+    display:inline-block;
+    margin-top:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--white-40);
+    border:1px solid var(--line);
+    padding:3px 8px;
+    border-radius:20px;
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    border-top:1px solid var(--line);
+    padding:36px 0 48px;
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:16px;
+  }
+  footer .logo{font-size:14px;}
+  footer .foot-links{display:flex; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--white-65);}
+  footer .foot-links a{text-decoration:none; transition:color .2s ease;}
+  footer .foot-links a:hover{color:var(--white);}
+  footer .foot-meta{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--white-40);
+    width:100%; margin-top:8px;
+  }
+
+  /* ---------- BADGE "PEEK" (collé au bord gauche au scroll) ---------- */
+  .badge-peek{
+    position:fixed;
+    top:50%;
+    left:0;
+    width:clamp(90px, 9vw, 130px);
+    height:clamp(90px, 9vw, 130px);
+    transform:translate(-85%, -50%);
+    opacity:0;
+    pointer-events:none;
+    z-index:45;
+    transition:transform .55s cubic-bezier(.22,.9,.32,1), opacity .45s ease;
+  }
+  .badge-peek.is-visible{
+    transform:translate(-65%, -50%);
+    opacity:1;
+    pointer-events:auto;
+  }
+  .badge-peek-inner{
+    width:100%; height:100%;
+    border-radius:50%;
+    background:var(--green);
+    border:2px solid var(--green-bright);
+    box-shadow:0 20px 50px -18px rgba(0,0,0,0.7);
+    cursor:pointer;
+    overflow:hidden;
+  }
+  .badge-peek-inner img{width:100%; height:100%; display:block; border-radius:50%; object-fit:cover;}
+  @media (prefers-reduced-motion: reduce){
+    .badge-peek{transition:opacity .3s ease;}
+  }
+  @media (max-width:640px){
+    .badge-peek{display:none;}
+  }
+
+  ::selection{background:var(--green); color:var(--white);}
+
+  /* ---------- SCROLL PROGRESS ---------- */
+  .scroll-progress{
+    position:fixed; top:0; left:0;
+    height:2px;
+    width:0%;
+    background:var(--green-bright);
+    z-index:50;
+    transition:width .1s linear;
+  }
+
+  /* ---------- SCROLL REVEAL ---------- */
+  @media (prefers-reduced-motion: no-preference){
+    .reveal{
+      opacity:0;
+      transform:translateY(22px);
+      transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1);
+    }
+    .reveal.is-visible{
+      opacity:1;
+      transform:translateY(0);
+    }
+    .reveal-stagger.is-visible .reveal-item{
+      opacity:1;
+      transform:translateY(0);
+    }
+    .reveal-item{
+      opacity:0;
+      transform:translateY(18px);
+      transition:opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1);
+    }
+    .reveal-item:nth-child(1){transition-delay:.05s;}
+    .reveal-item:nth-child(2){transition-delay:.14s;}
+    .reveal-item:nth-child(3){transition-delay:.23s;}
+    .reveal-item:nth-child(4){transition-delay:.32s;}
+    .reveal-item:nth-child(5){transition-delay:.41s;}
+    .reveal-item:nth-child(6){transition-delay:.50s;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .live-dot{animation:none;}
+    html{scroll-behavior:auto;}
+  }
+</style>
+</head>
+<body>
+
+<div class="scroll-progress" id="scroll-progress"></div>
+<div class="badge-peek" id="badge-peek">
+  <div class="badge-peek-inner"><img src="assets/logo-badge.png" alt="TIMBRE Sessions"></div>
+</div>
+<div class="top-waves" id="top-waves" aria-hidden="true"></div>
+
+<div class="wrap">
+
+  <nav>
+    <div class="logo-badge" id="logo-badge" role="img" aria-label="TIMBRE Sessions" title="TIMBRE Sessions">
+      <svg class="badge-ring" viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="96" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.6" stroke-dasharray="1 11" stroke-linecap="round"/>
+      </svg>
+      <div class="badge-core" id="badge-inner">
+        <img src="assets/logo-badge.png" alt="Logo TIMBRE Sessions">
+      </div>
+    </div>
+    <a class="nav-link" href="https://timbresessions.bandcamp.com/" target="_blank" rel="noopener">Bandcamp ↗</a>
+  </nav>
+
+  <section class="hero">
+    <div class="eyebrow">Enregistrement live — édition limitée</div>
+    <h1>L'instant que vous venez de vivre,<br><em>gravé pour toujours.</em></h1>
+    <p>Nous captons l'énergie brute des concerts — la console, la salle, les applaudissements — pour en faire une archive sonore fidèle à ce soir précis. Pas un album studio. Pas un bootleg. Le concert, tel que vous l'avez vécu.</p>
+  </section>
+
+  <section class="ticket reveal">
+    <div class="ticket-cell">
+      <div class="ticket-label">Artiste</div>
+      <div class="ticket-value" id="tk-artist">Nom de l'artiste</div>
+    </div>
+    <div class="ticket-cell">
+      <div class="ticket-label">Salle</div>
+      <div class="ticket-value" id="tk-venue">Nom de la salle<small id="tk-city">Ville</small></div>
+    </div>
+    <div class="ticket-cell">
+      <div class="ticket-label">Date du concert</div>
+      <div class="ticket-value" id="tk-date">JJ mois AAAA</div>
+    </div>
+  </section>
+
+  <section class="counter-section reveal">
+    <div class="counter-label">Précommande ouverte — sortie de l'enregistrement dans</div>
+    <div class="counter-panel">
+      <div class="counter-inset">
+        <div class="counter-unit">
+          <div class="counter-digits" id="cd-days">00</div>
+          <div class="counter-caption">Jours</div>
+        </div>
+        <div class="counter-sep">:</div>
+        <div class="counter-unit">
+          <div class="counter-digits" id="cd-hours">00</div>
+          <div class="counter-caption">Heures</div>
+        </div>
+        <div class="counter-sep">:</div>
+        <div class="counter-unit">
+          <div class="counter-digits" id="cd-minutes">00</div>
+          <div class="counter-caption">Min</div>
+        </div>
+        <div class="counter-sep">:</div>
+        <div class="counter-unit">
+          <div class="counter-digits" id="cd-seconds">00</div>
+          <div class="counter-caption">Sec</div>
+        </div>
+      </div>
+    </div>
+    <div class="counter-status" id="counter-status"><span class="live-dot"></span>Mixage en cours à partir de la console de la salle</div>
+  </section>
+
+  <section class="cta-block reveal">
+    <a class="btn-bandcamp" href="https://timbresessions.bandcamp.com/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M0 18.75l7.437-13.5H24l-7.437 13.5H0z"/></svg>
+      Précommander l'album sur Bandcamp
+    </a>
+    <div class="cta-sub">Livraison automatique dès la sortie · fichiers haute fidélité</div>
+  </section>
+
+  <section class="about">
+    <h2 class="reveal">Un enregistrement, pas un souvenir flou</h2>
+    <div class="about-grid reveal-stagger">
+      <div class="about-item reveal-item">
+        <span class="num">01</span>
+        <h3>Double captation</h3>
+        <p>Le flux de la console de mixage, croisé avec des micros d'ambiance placés dans la salle — pour garder le son ET l'énergie du public.</p>
+      </div>
+      <div class="about-item reveal-item">
+        <span class="num">02</span>
+        <h3>Mix fidèle au soir</h3>
+        <p>Un mixage rapide, propre à cette date et cette salle. Rien de générique : c'est ce concert-là, pas une captation interchangeable.</p>
+      </div>
+      <div class="about-item reveal-item">
+        <span class="num">03</span>
+        <h3>Édition datée</h3>
+        <p>Chaque sortie est liée à une date et un lieu précis. Une archive, pas un produit dérivé.</p>
+      </div>
+    </div>
+
+    <div class="revenue-note reveal">
+      <div class="icon">%</div>
+      <p><strong>Une partie de chaque précommande est reversée à l'artiste et à la salle.</strong> TIMBRE Sessions fonctionne en partenariat direct avec les lieux et les musiciens — la diffusion de ce live est autorisée et rémunère celles et ceux qui l'ont créé, ce soir-là.</p>
+    </div>
+  </section>
+
+  <section class="gallery">
+    <div class="gallery-head reveal">
+      <div>
+        <h2>Releases</h2>
+        <p>Les enregistrements déjà disponibles. Chaque pochette renvoie vers l'album correspondant sur Bandcamp.</p>
+      </div>
+    </div>
+    <div class="gallery-grid reveal-stagger" id="gallery-grid"></div>
+  </section>
+
+  <footer>
+    <div class="logo"><span class="logo-mark">Timbre</span><span class="logo-session">Sessions</span></div>
+    <div class="foot-links">
+      <a href="https://timbresessions.bandcamp.com/" target="_blank" rel="noopener">Bandcamp</a>
+      <a href="#" onclick="return false;">Contact</a>
+    </div>
+    <div class="foot-meta">Bruxelles, Belgique — L'instant brut du live.</div>
+  </footer>
+
+</div>
+
+<script>
+  // ————————————————————————————————————————
+  // À PERSONNALISER : infos du concert et date de sortie
+  // ————————————————————————————————————————
+  const CONFIG = {
+    artist: "KELLY FINNIGAN",
+    venue: "HET DEPOT",
+    city: "LEUVEN, BELGIQUE",
+    concertDate: "28 août 2026",
+    releaseDate: new Date("2026-08-29T12:00:00") // date/heure réelle de sortie
+  };
+
+  // ————————————————————————————————————————
+  // À PERSONNALISER : la vitrine des albums déjà sortis
+  // "tint" accepte "green" (couleur signal) ou "ink" (fond neutre) —
+  // dérivés automatiquement pour rester dans la palette de la marque.
+  // ————————————————————————————————————————
+  const RELEASES = [
+    {
+      title: "Live at Studio Coast",
+      venue: "Studio Coast",
+      city: "Kōtō, Japon",
+      url: "https://timbresessions.bandcamp.com/album/live-at-studio-coast-k-t-japon-non-commercial-2",
+      thumb: "covers/Album 002B.jpg", // pochette officielle
+      status: "Disponible"
+    },
+    {
+      title: "Live at Het Depot",
+      venue: "Het Depot",
+      city: "Louvain, Belgique",
+      url: "https://timbresessions.bandcamp.com/",
+      thumb: "covers/Album 003B.jpg",
+      status: "À venir"
+    },
+    {
+      title: "Live at House",
+      venue: "House",
+      city: "Bruxelles, Belgique",
+      url: "https://timbresessions.bandcamp.com/",
+      thumb: "covers/Album prototype.jpg",
+      status: "À venir"
+    },
+    {
+      title: "Live at Deux Ours",
+      venue: "Deux Ours",
+      city: "Modave, Belgique",
+      url: "https://timbresessions.bandcamp.com/",
+      thumb: "covers/Little Barrie.jpg",
+      status: "À venir"
+    },
+    {
+      title: "Live at Geulard Plus",
+      venue: "Geulard Plus",
+      city: "Nilvange, France",
+      url: "https://timbresessions.bandcamp.com/",
+      thumb: "covers/Album 001B (1).jpg",
+      status: "À venir"
+    }
+  ];
+
+  document.getElementById('tk-artist').textContent = CONFIG.artist;
+  document.getElementById('tk-venue').firstChild.textContent = CONFIG.venue;
+  document.getElementById('tk-city').textContent = CONFIG.city;
+  document.getElementById('tk-date').textContent = CONFIG.concertDate;
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function updateCountdown(){
+    const now = new Date();
+    let diff = CONFIG.releaseDate - now;
+
+    if (diff <= 0){
+      document.getElementById('cd-days').textContent = '00';
+      document.getElementById('cd-hours').textContent = '00';
+      document.getElementById('cd-minutes').textContent = '00';
+      document.getElementById('cd-seconds').textContent = '00';
+      document.getElementById('counter-status').innerHTML = '<span class="live-dot"></span>L\'enregistrement est disponible';
+      return;
+    }
+
+    const days = Math.floor(diff / (1000*60*60*24));
+    const hours = Math.floor((diff / (1000*60*60)) % 24);
+    const minutes = Math.floor((diff / (1000*60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    document.getElementById('cd-days').textContent = pad(days);
+    document.getElementById('cd-hours').textContent = pad(hours);
+    document.getElementById('cd-minutes').textContent = pad(minutes);
+    document.getElementById('cd-seconds').textContent = pad(seconds);
+  }
+
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  // ————————————————————————————————————————
+  // Ondulations pleine largeur en haut de page
+  // ————————————————————————————————————————
+  function renderTopWaves(){
+    const w = 1600, h = 300;
+    const d1 = `M -40 150 C 220 60, 340 260, 520 150 C 680 60, 800 240, 980 140 `
+             + `C 1120 60, 1260 220, 1640 130`;
+    const d2 = `M -40 190 C 220 100, 340 300, 520 190 C 680 100, 800 280, 980 180 `
+             + `C 1120 100, 1260 260, 1640 170`;
+    const paths = `
+      <path d="${d1}" stroke="#ffffff" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.9"/>
+      <path d="${d2}" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.4"/>
+    `;
+    document.getElementById('top-waves').innerHTML =
+      `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${paths}</svg>`;
+  }
+  renderTopWaves();
+
+  // ————————————————————————————————————————
+  // Badge "peek" collé au bord gauche pendant le scroll
+  // (apparaît une fois le badge principal sorti du haut de l'écran)
+  // ————————————————————————————————————————
+  const mainBadge = document.getElementById('logo-badge');
+  const peekBadge = document.getElementById('badge-peek');
+
+  const peekObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const scrolledPast = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+      peekBadge.classList.toggle('is-visible', scrolledPast);
+    });
+  }, { threshold: 0 });
+  peekObserver.observe(mainBadge);
+
+  peekBadge.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: no-preference)').matches ? 'smooth' : 'auto' });
+  });
+
+  // ————————————————————————————————————————
+  // Animations au scroll (fade + léger déplacement)
+  // ————————————————————————————————————————
+  if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches){
+    const revealTargets = document.querySelectorAll('.reveal, .reveal-stagger');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting){
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+
+    revealTargets.forEach(el => observer.observe(el));
+  } else {
+    document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => el.classList.add('is-visible'));
+  }
+
+  // ————————————————————————————————————————
+  // Barre de progression de lecture (haut de page)
+  // ————————————————————————————————————————
+  const progressBar = document.getElementById('scroll-progress');
+  function updateProgress(){
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    progressBar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  updateProgress();
+
+  // ————————————————————————————————————————
+  // Parallax discret sur les ondulations du haut de page
+  // ————————————————————————————————————————
+  const topWavesEl = document.getElementById('top-waves');
+  const prefersMotion = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+  if (prefersMotion){
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY * 0.18;
+      topWavesEl.style.transform = `translateY(${y}px)`;
+    }, { passive: true });
+  }
+
+  // ————————————————————————————————————————
+  // Génération des pochettes de la vitrine
+  // (lignes ondulées + trame de points + bandeau titre,
+  //  dans le même esprit graphique que les visuels Bandcamp)
+  // ————————————————————————————————————————
+  function waveLines(){
+    let out = '';
+    const lines = 9;
+    for (let i = 0; i < lines; i++){
+      const y = 14 + i * 8.5;
+      const amp = 20 - i * 0.6;
+      const d = `M -10 ${y+amp} C 90 ${y-amp}, 130 ${y+amp}, 190 ${y-amp*0.3} C 230 ${y-amp*1.3}, 280 ${y+amp}, 340 ${y-amp*0.4}`;
+      out += `<path d="${d}" stroke="#ffffff" stroke-width="1.3" fill="none" opacity="0.9"/>`;
+    }
+    return out;
+  }
+
+  function halftoneDots(){
+    let out = '';
+    const rows = 12, cols = 12, spacing = 9.5;
+    const originX = 230, originY = 150;
+    for (let r = 0; r < rows; r++){
+      for (let c = 0; c < cols; c++){
+        const dist = Math.hypot(c, r) / Math.hypot(cols, rows);
+        const radius = Math.max(0.3, 3.4 * (1 - dist));
+        if (radius < 0.35) continue;
+        const x = originX + c * spacing;
+        const y = originY + r * spacing;
+        out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radius.toFixed(2)}" fill="#ffffff" opacity="0.3"/>`;
+      }
+    }
+    return out;
+  }
+
+  function coverSVG(release){
+    const bg = release.tint === 'green' ? 'var(--green)' : 'var(--ink-soft)';
+    return `
+      <svg class="cover-art" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pochette ${release.title}">
+        <rect width="320" height="320" fill="${bg}"/>
+        <g>${waveLines()}</g>
+        <g>${halftoneDots()}</g>
+        <g>
+          <rect x="24" y="228" width="3" height="62" fill="#ffffff"/>
+          <line x1="24" y1="228" x2="300" y2="228" stroke="#ffffff" stroke-width="1"/>
+          <line x1="24" y1="252" x2="300" y2="252" stroke="#ffffff" stroke-width="1"/>
+          <line x1="24" y1="290" x2="300" y2="290" stroke="#ffffff" stroke-width="1"/>
+          <text x="34" y="244" font-family="Inter, sans-serif" font-weight="700" font-size="17" fill="#ffffff" letter-spacing="0.3">${release.title.toUpperCase()}</text>
+        </g>
+        <text x="296" y="304" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#ffffff" opacity="0.85" text-anchor="end" letter-spacing="0.06em">${release.city.toUpperCase()}</text>
+      </svg>`;
+  }
+
+  const grid = document.getElementById('gallery-grid');
+  RELEASES.forEach(release => {
+    const a = document.createElement('a');
+    a.className = 'cover-card reveal-item';
+    a.href = release.url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+
+    // Si une vraie pochette (thumb) est fournie, on l'utilise.
+    // Sinon, on retombe sur la pochette générée dans le style de la marque.
+    const artwork = release.thumb
+      ? `<img class="cover-art" src="${release.thumb}" alt="Pochette — ${release.title}" loading="lazy">`
+      : coverSVG(release);
+
+    a.innerHTML = `
+      ${artwork}
+      <div class="cover-meta">
+        <span class="cover-title">${release.title}</span>
+        <span class="cover-sub">${release.venue} — ${release.city}</span>
+        <span class="cover-status">${release.status}</span>
+      </div>
+    `;
+    grid.appendChild(a);
+
+    // Tilt 3D discret au survol — attaché directement à la carte pour une réponse immédiate
+    if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches){
+      a.addEventListener('mousemove', (e) => {
+        const rect = a.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width - 0.5;
+        const py = (e.clientY - rect.top) / rect.height - 0.5;
+        a.style.transform = `perspective(700px) rotateX(${(-py * 7).toFixed(2)}deg) rotateY(${(px * 7).toFixed(2)}deg) translateY(-4px)`;
+      });
+      a.addEventListener('mouseleave', () => { a.style.transform = ''; });
+    }
+  });
+</script>
+
+</body>
+</html>
